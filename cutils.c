@@ -1311,8 +1311,10 @@ void js_cond_init(js_cond_t *cond) {
     if (pthread_cond_init(cond, &attr))
         abort();
 
+    #if !defined(ESP32)
     if (pthread_condattr_destroy(&attr))
         abort();
+    #endif
 #endif
 }
 
