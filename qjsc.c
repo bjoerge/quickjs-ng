@@ -42,6 +42,7 @@
 typedef enum {
     OUTPUT_C,
     OUTPUT_C_MAIN,
+    OUTPUT_C_PROGMEM,
     OUTPUT_RAW,
 } OutputTypeEnum;
 
@@ -183,8 +184,13 @@ static void output_object_code(JSContext *ctx,
     } else {
         fprintf(fo, "const uint32_t %s_size = %u;\n\n",
                 c_name, (unsigned int)out_buf_len);
-        fprintf(fo, "const uint8_t %s[%u] = {\n",
-                c_name, (unsigned int)out_buf_len);
+        if (output_type == OUTPUT_C_PROGMEM) {
+            fprintf(fo, "const uint8_t %s[%u] PROGMEM = {\n",
+                    c_name, (unsigned int)out_buf_len);
+        } else {
+            fprintf(fo, "const uint8_t %s[%u] = {\n",
+                    c_name, (unsigned int)out_buf_len);
+        }
         dump_hex(fo, out_buf, out_buf_len);
         fprintf(fo, "};\n\n");
     }
@@ -344,6 +350,7 @@ void help(void)
            "options are:\n"
            "-b          output raw bytecode instead of C code\n"
            "-e          output main() and bytecode in a C file\n"
+           "-P          output as Arduino PROGMEM\n"
            "-o output   set the output filename\n"
            "-n script_name    set the script name (as used in stack traces)\n"
            "-N cname    set the C name of the generated data\n"
@@ -390,7 +397,7 @@ int main(int argc, char **argv)
     namelist_add(&cmodule_list, "bjson", "bjson", 0);
 
     for(;;) {
-        c = getopt(argc, argv, "ho:N:mn:bxesvM:p:S:D:");
+        c = getopt(argc, argv, "ho:N:mn:bxesvPM:p:S:D:");
         if (c == -1)
             break;
         switch(c) {
@@ -404,6 +411,9 @@ int main(int argc, char **argv)
             break;
         case 'e':
             output_type = OUTPUT_C_MAIN;
+            break;
+        case 'P':
+            output_type = OUTPUT_C_PROGMEM;
             break;
         case 'n':
             script_name = optarg;
@@ -487,6 +497,12 @@ int main(int argc, char **argv)
                 );
     } else if (output_type == OUTPUT_C) {
         fprintf(fo, "#include <inttypes.h>\n"
+                "\n"
+                );
+    }
+    else if (output_type == OUTPUT_C_PROGMEM) {
+        fprintf(fo, "#include <inttypes.h>\n"
+                "#include <pgmspace.h>\n"
                 "\n"
                 );
     }
